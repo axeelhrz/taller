@@ -85,7 +85,7 @@ export function Contact() {
     });
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canNext()) return;
 
@@ -94,7 +94,7 @@ export function Contact() {
       return;
     }
 
-    const created = submitRequest({
+    const created = await submitRequest({
       name: values.name.trim(),
       phone: values.phone.trim(),
       vehicle: form.askVehicle ? values.vehicle.trim() : "",

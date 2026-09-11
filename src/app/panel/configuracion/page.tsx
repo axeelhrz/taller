@@ -26,6 +26,7 @@ export default function ConfiguracionPage() {
   const [formDraft, setFormDraft] = useState<FormSettings>(form);
 
   const [newUser, setNewUser] = useState(username);
+  const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
 
@@ -75,7 +76,7 @@ export default function ConfiguracionPage() {
     }));
   }
 
-  function saveAll(e: FormEvent) {
+  async function saveAll(e: FormEvent) {
     e.preventDefault();
     const services = formDraft.services.map((s) => s.trim()).filter(Boolean);
     if (services.length === 0 && formDraft.askService) {
@@ -83,23 +84,31 @@ export default function ConfiguracionPage() {
       return;
     }
 
-    updateSettings({
-      phoneDisplay,
-      addressLine,
-      addressRegion,
-      postalCode,
-      lat: Number(lat) || contact.lat,
-      lng: Number(lng) || contact.lng,
-      schedule,
-      form: { ...formDraft, services },
-    });
-    push("Configuración guardada");
+    try {
+      await updateSettings({
+        phoneDisplay,
+        addressLine,
+        addressRegion,
+        postalCode,
+        lat: Number(lat) || contact.lat,
+        lng: Number(lng) || contact.lng,
+        schedule,
+        form: { ...formDraft, services },
+      });
+      push("Configuración guardada");
+    } catch {
+      push("No se pudo guardar la configuración");
+    }
   }
 
-  function saveAccess(e: FormEvent) {
+  async function saveAccess(e: FormEvent) {
     e.preventDefault();
     if (!newUser.trim()) {
       push("El usuario no puede estar vacío");
+      return;
+    }
+    if (!currentPass) {
+      push("Ingresá la contraseña actual");
       return;
     }
     if (newPass.length < 6) {
@@ -110,10 +119,15 @@ export default function ConfiguracionPage() {
       push("Las contraseñas no coinciden");
       return;
     }
-    changeCredentials(newUser, newPass);
-    setNewPass("");
-    setConfirmPass("");
-    push("Usuario y contraseña actualizados");
+    try {
+      await changeCredentials(newUser, newPass, currentPass);
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
+      push("Usuario y contraseña actualizados. Volvé a iniciar sesión.");
+    } catch {
+      push("No se pudo actualizar el acceso. Revisá la contraseña actual.");
+    }
   }
 
   return (
@@ -368,6 +382,13 @@ export default function ConfiguracionPage() {
             label="Usuario"
             value={newUser}
             onChange={setNewUser}
+            className="sm:col-span-2"
+          />
+          <Field
+            label="Contraseña actual"
+            value={currentPass}
+            onChange={setCurrentPass}
+            type="password"
             className="sm:col-span-2"
           />
           <Field

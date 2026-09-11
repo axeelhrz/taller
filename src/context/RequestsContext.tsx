@@ -1,13 +1,6 @@
 "use client";
 
 import {
-  REQUESTS_EVENT,
-  addServiceRequest,
-  readRequests,
-  updateServiceRequestStatus,
-} from "@/lib/requests-store";
-import type { RequestStatus, ServiceRequest } from "@/lib/types";
-import {
   createContext,
   useCallback,
   useContext,
@@ -15,15 +8,21 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  createRequestInFirestore,
+  listenRequests,
+  updateRequestStatusInFirestore,
+} from "@/lib/firebase/data";
+import type { RequestStatus, ServiceRequest } from "@/lib/types";
 
 type RequestsContextValue = {
   requests: ServiceRequest[];
   newCount: number;
   submitRequest: (
     input: Omit<ServiceRequest, "id" | "createdAt" | "status" | "source">,
-  ) => ServiceRequest;
-  setRequestStatus: (id: string, status: RequestStatus) => void;
-  refresh: () => void;
+  ) => Promise<ServiceRequest>;
+  setRequestStatus: (id: string, status: RequestStatus) => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const RequestsContext = createContext<RequestsContextValue | null>(null);
@@ -32,39 +31,37 @@ export function RequestsProvider({ children }: { children: React.ReactNode }) {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [ready, setReady] = useState(false);
 
-  const refresh = useCallback(() => {
-    setRequests(readRequests());
+  useEffect(() => {
+    const unsub = listenRequests(
+      (next) => {
+        setRequests(next);
+        setReady(true);
+      },
+      () => {
+        setRequests([]);
+        setReady(true);
+      },
+    );
+    return () => unsub();
   }, []);
 
-  useEffect(() => {
-    refresh();
-    setReady(true);
-
-    const onUpdate = () => refresh();
-    window.addEventListener(REQUESTS_EVENT, onUpdate);
-    window.addEventListener("storage", onUpdate);
-    return () => {
-      window.removeEventListener(REQUESTS_EVENT, onUpdate);
-      window.removeEventListener("storage", onUpdate);
-    };
-  }, [refresh]);
-
   const submitRequest = useCallback(
-    (input: Omit<ServiceRequest, "id" | "createdAt" | "status" | "source">) => {
-      const created = addServiceRequest(input);
-      refresh();
-      return created;
+    async (
+      input: Omit<ServiceRequest, "id" | "createdAt" | "status" | "source">,
+    ) => {
+      return createRequestInFirestore(input);
     },
-    [refresh],
+    [],
   );
 
   const setRequestStatus = useCallback(
-    (id: string, status: RequestStatus) => {
-      updateServiceRequestStatus(id, status);
-      refresh();
+    async (id: string, status: RequestStatus) => {
+      await updateRequestStatusInFirestore(id, status);
     },
-    [refresh],
+    [],
   );
+
+  const refresh = useCallback(async () => undefined, []);
 
   const newCount = useMemo(
     () => requests.filter((r) => r.status === "nueva").length,
@@ -93,7 +90,6 @@ export function useRequests() {
   return ctx;
 }
 
-/** Safe hook for pages that may or may not have the provider */
 export function useRequestsOptional() {
   return useContext(RequestsContext);
 }

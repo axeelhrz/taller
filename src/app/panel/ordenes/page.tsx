@@ -48,10 +48,10 @@ export default function OrdenesPage() {
     });
   }, [filter, orders, query]);
 
-  function handleCreate(e: FormEvent<HTMLFormElement>) {
+  async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    addOrder({
+    await addOrder({
       clientName: String(data.get("clientName") || ""),
       vehicle: String(data.get("vehicle") || ""),
       plate: String(data.get("plate") || ""),
@@ -154,10 +154,11 @@ export default function OrdenesPage() {
                           value={order.status}
                           onChange={(e) => {
                             const status = e.target.value as OrderStatus;
-                            updateOrderStatus(order.id, status);
-                            push(
-                              `${order.id} → ${statusLabels[status]}`,
-                              "info",
+                            void updateOrderStatus(order.id, status).then(() =>
+                              push(
+                                `${order.id} → ${statusLabels[status]}`,
+                                "info",
+                              ),
                             );
                           }}
                           className="field max-w-[150px] py-1.5 text-xs"

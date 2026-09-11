@@ -10,9 +10,9 @@ export function PanelLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const ok = login(username, password);
+    const ok = await login(username, password);
     if (!ok) {
       setError("Usuario o contraseña incorrectos");
       return;

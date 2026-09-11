@@ -28,10 +28,10 @@ export default function CitasPage() {
     return appointments.filter((a) => a.status === filter);
   }, [appointments, filter]);
 
-  function handleCreate(e: FormEvent<HTMLFormElement>) {
+  async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    addAppointment({
+    await addAppointment({
       clientName: String(data.get("clientName") || ""),
       phone: String(data.get("phone") || ""),
       vehicle: String(data.get("vehicle") || ""),
@@ -124,8 +124,9 @@ export default function CitasPage() {
                 value={apt.status}
                 onChange={(e) => {
                   const status = e.target.value as AppointmentStatus;
-                  updateAppointmentStatus(apt.id, status);
-                  push(`Cita → ${statusLabels[status]}`, "info");
+                  void updateAppointmentStatus(apt.id, status).then(() =>
+                    push(`Cita → ${statusLabels[status]}`, "info"),
+                  );
                 }}
                 className="field max-w-[160px] py-1.5 text-xs"
               >

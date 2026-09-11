@@ -63,17 +63,17 @@ export default function SolicitudesPage() {
   const selected =
     filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
 
-  function mark(status: RequestStatus) {
+  async function mark(status: RequestStatus) {
     if (!selected) return;
-    setRequestStatus(selected.id, status);
+    await setRequestStatus(selected.id, status);
     push(`Solicitud ${selected.id} → ${REQUEST_STATUS_LABELS[status]}`);
   }
 
-  function scheduleFromRequest() {
+  async function scheduleFromRequest() {
     if (!selected) return;
     const today = new Date();
     const date = today.toISOString().slice(0, 10);
-    addAppointment({
+    await addAppointment({
       clientName: selected.name,
       phone: selected.phone,
       vehicle: selected.vehicle,
@@ -83,13 +83,13 @@ export default function SolicitudesPage() {
       notes: selected.notes || `Desde ${selected.id}`,
       status: "pendiente",
     });
-    addClient({
+    await addClient({
       name: selected.name,
       phone: selected.phone,
       email: "",
       vehicleCount: 1,
     });
-    setRequestStatus(selected.id, "agendada");
+    await setRequestStatus(selected.id, "agendada");
     push("Cita creada desde la solicitud");
   }
 

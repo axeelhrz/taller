@@ -8,22 +8,26 @@ import {
   useMemo,
   useState,
 } from "react";
+import { DEFAULT_PANEL_USER } from "@/lib/auth-defaults";
 import {
-  AUTH_EVENT,
-  isAuthenticated,
-  readCredentials,
-  setAuthenticated,
-  verifyLogin,
-  writeCredentials,
-} from "@/lib/auth-store";
+  listenAuth,
+  loginWithUsername,
+  logoutFirebase,
+  updatePanelCredentials,
+  usernameFromEmail,
+} from "@/lib/firebase/auth";
 
 type AuthContextValue = {
   ready: boolean;
   authenticated: boolean;
   username: string;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
-  changeCredentials: (username: string, password: string) => void;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  changeCredentials: (
+    username: string,
+    password: string,
+    currentPassword: string,
+  ) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -31,40 +35,42 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuth] = useState(false);
-  const [username, setUsername] = useState("wilson");
-
-  const refresh = useCallback(() => {
-    setAuth(isAuthenticated());
-    setUsername(readCredentials().username);
-  }, []);
+  const [username, setUsername] = useState(DEFAULT_PANEL_USER);
 
   useEffect(() => {
-    refresh();
-    setReady(true);
-    const onUpdate = () => refresh();
-    window.addEventListener(AUTH_EVENT, onUpdate);
-    return () => window.removeEventListener(AUTH_EVENT, onUpdate);
-  }, [refresh]);
-
-  const login = useCallback((user: string, password: string) => {
-    const ok = verifyLogin(user, password);
-    if (ok) {
-      setAuthenticated(true);
-      setAuth(true);
-      setUsername(readCredentials().username);
-    }
-    return ok;
+    const unsub = listenAuth((user) => {
+      setAuth(Boolean(user));
+      setUsername(usernameFromEmail(user?.email));
+      setReady(true);
+    });
+    return () => unsub();
   }, []);
 
-  const logout = useCallback(() => {
-    setAuthenticated(false);
+  const login = useCallback(async (user: string, password: string) => {
+    try {
+      const logged = await loginWithUsername(user, password);
+      setAuth(true);
+      setUsername(usernameFromEmail(logged.email));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    await logoutFirebase();
     setAuth(false);
   }, []);
 
-  const changeCredentials = useCallback((user: string, password: string) => {
-    writeCredentials(user, password);
-    setUsername(user.trim().toLowerCase());
-  }, []);
+  const changeCredentials = useCallback(
+    async (user: string, password: string, currentPassword: string) => {
+      await updatePanelCredentials(currentPassword, user, password);
+      await logoutFirebase();
+      setAuth(false);
+      setUsername(user.trim().toLowerCase());
+    },
+    [],
+  );
 
   const value = useMemo(
     () => ({

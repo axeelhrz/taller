@@ -10,9 +10,6 @@ import {
   type WorkshopContact,
 } from "./contact";
 
-const STORAGE_KEY = "wl-site-settings-v1";
-export const SETTINGS_EVENT = "wl-settings-updated";
-
 export type FormSettings = {
   intro: string;
   stepContactTitle: string;
@@ -77,10 +74,6 @@ export const defaultFormSettings: FormSettings = {
     "Ya está en el panel del taller. Te contactamos para confirmar.",
 };
 
-function canUseStorage() {
-  return typeof window !== "undefined" && typeof localStorage !== "undefined";
-}
-
 function hydrateForm(partial?: Partial<FormSettings>): FormSettings {
   const services =
     Array.isArray(partial?.services) && partial.services.length > 0
@@ -137,44 +130,4 @@ export function defaultSiteSettings(): SiteSettings {
     contact: defaultWorkshopContact,
     form: defaultFormSettings,
   };
-}
-
-export function readSiteSettings(): SiteSettings {
-  if (!canUseStorage()) return defaultSiteSettings();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultSiteSettings();
-    const parsed = JSON.parse(raw) as Partial<SiteSettingsInput>;
-    return hydrateSettings({
-      phoneDisplay: parsed.phoneDisplay ?? defaultWorkshopContact.phoneDisplay,
-      addressLine: parsed.addressLine ?? defaultWorkshopContact.addressLine,
-      addressRegion:
-        parsed.addressRegion ?? defaultWorkshopContact.addressRegion,
-      postalCode: parsed.postalCode ?? defaultWorkshopContact.postalCode,
-      lat: parsed.lat ?? defaultWorkshopContact.lat,
-      lng: parsed.lng ?? defaultWorkshopContact.lng,
-      schedule: parsed.schedule ?? defaultSchedule,
-      form: hydrateForm(parsed.form),
-    });
-  } catch {
-    return defaultSiteSettings();
-  }
-}
-
-export function writeSiteSettings(input: SiteSettingsInput): SiteSettings {
-  const settings = hydrateSettings(input);
-  if (!canUseStorage()) return settings;
-  const toStore: SiteSettingsInput = {
-    phoneDisplay: settings.contact.phoneDisplay,
-    addressLine: settings.contact.addressLine,
-    addressRegion: settings.contact.addressRegion,
-    postalCode: settings.contact.postalCode,
-    lat: settings.contact.lat,
-    lng: settings.contact.lng,
-    schedule: settings.contact.schedule,
-    form: settings.form,
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
-  window.dispatchEvent(new CustomEvent(SETTINGS_EVENT));
-  return settings;
 }

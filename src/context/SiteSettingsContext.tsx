@@ -9,22 +9,24 @@ import {
   useState,
 } from "react";
 import {
-  SETTINGS_EVENT,
   defaultSiteSettings,
-  readSiteSettings,
-  writeSiteSettings,
   type FormSettings,
   type SiteSettings,
   type SiteSettingsInput,
 } from "@/lib/site-settings";
 import type { WorkshopContact } from "@/lib/contact";
+import {
+  listenSettings,
+  saveSettingsToFirestore,
+} from "@/lib/firebase/data";
+import { initAnalytics } from "@/lib/firebase/client";
 
 type SiteSettingsContextValue = {
   contact: WorkshopContact;
   form: FormSettings;
   ready: boolean;
-  updateSettings: (input: SiteSettingsInput) => void;
-  refresh: () => void;
+  updateSettings: (input: SiteSettingsInput) => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const SiteSettingsContext = createContext<SiteSettingsContextValue | null>(
@@ -39,24 +41,26 @@ export function SiteSettingsProvider({
   const [settings, setSettings] = useState<SiteSettings>(defaultSiteSettings);
   const [ready, setReady] = useState(false);
 
-  const refresh = useCallback(() => {
-    setSettings(readSiteSettings());
+  useEffect(() => {
+    void initAnalytics();
+
+    const unsub = listenSettings(
+      (next) => {
+        setSettings(next);
+        setReady(true);
+      },
+      () => setReady(true),
+    );
+    return () => unsub();
   }, []);
 
-  useEffect(() => {
-    refresh();
-    setReady(true);
-    const onUpdate = () => refresh();
-    window.addEventListener(SETTINGS_EVENT, onUpdate);
-    window.addEventListener("storage", onUpdate);
-    return () => {
-      window.removeEventListener(SETTINGS_EVENT, onUpdate);
-      window.removeEventListener("storage", onUpdate);
-    };
-  }, [refresh]);
+  const updateSettings = useCallback(async (input: SiteSettingsInput) => {
+    const next = await saveSettingsToFirestore(input);
+    setSettings(next);
+  }, []);
 
-  const updateSettings = useCallback((input: SiteSettingsInput) => {
-    setSettings(writeSiteSettings(input));
+  const refresh = useCallback(async () => {
+    // onSnapshot keeps data live; no-op for compatibility
   }, []);
 
   const value = useMemo(

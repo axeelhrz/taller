@@ -90,7 +90,9 @@ export function Sidebar() {
       <div className="hidden space-y-3 border-t border-steel-mid p-4 lg:block">
         <button
           type="button"
-          onClick={logout}
+          onClick={() => {
+            void logout();
+          }}
           className="flex w-full items-center gap-2 text-sm text-mist transition hover:text-bone"
         >
           <LogOut className="size-4" />
