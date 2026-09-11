@@ -345,7 +345,7 @@ export function Contact() {
                     {current?.id === "detail" ? (
                       <div className="mt-6 space-y-5">
                         {form.askDate ? (
-                          <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-4">
                             <Field
                               label={form.dateLabel}
                               type="date"
@@ -465,7 +465,7 @@ function Field({
   min?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <label className="mb-2 block text-sm text-mist">{label}</label>
       <input
         type={type}
