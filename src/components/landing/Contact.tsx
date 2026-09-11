@@ -8,35 +8,23 @@ import {
   MessageCircle,
   Phone,
 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Chapter } from "@/components/landing/Chapter";
 import { Reveal } from "@/components/ui/Reveal";
 import { useToast } from "@/components/ui/Toast";
 import { useRequests } from "@/context/RequestsContext";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
-const services = [
-  "Diagnóstico",
-  "Service",
-  "Frenos",
-  "Motor",
-  "Aire",
-  "Otro",
-];
-
-const stepMeta = [
-  { label: "Datos", title: "¿Cómo te contactamos?" },
-  { label: "Vehículo", title: "¿Qué auto traés?" },
-  { label: "Detalle", title: "¿Qué le pasa?" },
-];
+type StepId = "contact" | "vehicle" | "detail";
 
 export function Contact() {
+  const { contact, form } = useSiteSettings();
   const { submitRequest } = useRequests();
   const { push } = useToast();
   const [step, setStep] = useState(0);
   const [sent, setSent] = useState(false);
   const [requestId, setRequestId] = useState("");
-  const [form, setForm] = useState({
+  const [values, setValues] = useState({
     name: "",
     phone: "",
     vehicle: "",
@@ -44,13 +32,43 @@ export function Contact() {
     notes: "",
   });
 
-  function update<K extends keyof typeof form>(key: K, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const steps = useMemo(() => {
+    const list: Array<{ id: StepId; label: string; title: string }> = [
+      { id: "contact", label: "Datos", title: form.stepContactTitle },
+    ];
+    if (form.askVehicle || form.askService) {
+      list.push({
+        id: "vehicle",
+        label: "Vehículo",
+        title: form.stepVehicleTitle,
+      });
+    }
+    if (form.askNotes) {
+      list.push({
+        id: "detail",
+        label: "Detalle",
+        title: form.stepDetailTitle,
+      });
+    }
+    return list;
+  }, [form]);
+
+  const current = steps[Math.min(step, steps.length - 1)];
+
+  function update<K extends keyof typeof values>(key: K, value: string) {
+    setValues((prev) => ({ ...prev, [key]: value }));
   }
 
   function canNext() {
-    if (step === 0) return form.name.trim().length > 1 && form.phone.trim().length > 6;
-    if (step === 1) return form.vehicle.trim().length > 2 && !!form.service;
+    if (!current) return false;
+    if (current.id === "contact") {
+      return values.name.trim().length > 1 && values.phone.trim().length > 6;
+    }
+    if (current.id === "vehicle") {
+      if (form.askVehicle && values.vehicle.trim().length < 3) return false;
+      if (form.askService && !values.service) return false;
+      return true;
+    }
     return true;
   }
 
@@ -58,7 +76,7 @@ export function Contact() {
     setSent(false);
     setRequestId("");
     setStep(0);
-    setForm({
+    setValues({
       name: "",
       phone: "",
       vehicle: "",
@@ -69,17 +87,19 @@ export function Contact() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (step < 2) {
-      if (canNext()) setStep((s) => s + 1);
+    if (!canNext()) return;
+
+    if (step < steps.length - 1) {
+      setStep((s) => s + 1);
       return;
     }
 
     const created = submitRequest({
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      vehicle: form.vehicle.trim(),
-      service: form.service,
-      notes: form.notes.trim(),
+      name: values.name.trim(),
+      phone: values.phone.trim(),
+      vehicle: form.askVehicle ? values.vehicle.trim() : "",
+      service: form.askService ? values.service : "Consulta",
+      notes: form.askNotes ? values.notes.trim() : "",
     });
     setRequestId(created.id);
     setSent(true);
@@ -99,13 +119,12 @@ export function Contact() {
             <span className="text-signal">tu bahía</span>
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-mist md:text-lg">
-            Contanos qué necesita el auto en 3 pasos. Te confirmamos turno — o
-            escribinos ahora si es urgente.
+            {form.intro}
           </p>
 
           <div className="mt-10 space-y-3">
             <a
-              href={workshopContact.whatsappUrl}
+              href={contact.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between gap-4 bg-[#10131a] px-5 py-4 transition hover:bg-[#151922]"
@@ -125,7 +144,7 @@ export function Contact() {
             </a>
 
             <a
-              href={`tel:${workshopContact.phoneTel}`}
+              href={`tel:${contact.phoneTel}`}
               className="flex items-center justify-between gap-4 bg-[#10131a] px-5 py-4 transition hover:bg-[#151922]"
             >
               <span className="flex items-center gap-3">
@@ -137,7 +156,7 @@ export function Contact() {
                     Llamar al taller
                   </span>
                   <span className="font-display text-xl tracking-wide text-bone">
-                    {workshopContact.phoneDisplay}
+                    {contact.phoneDisplay}
                   </span>
                 </span>
               </span>
@@ -146,7 +165,7 @@ export function Contact() {
           </div>
 
           <p className="mt-6 text-sm text-mist/70">
-            Lun–Vie 8–18 · Sáb 8–13 · {workshopContact.plusCode}
+            {contact.scheduleSummary} · {contact.addressLine}
           </p>
         </Reveal>
 
@@ -162,23 +181,22 @@ export function Contact() {
               >
                 <CheckCircle2 className="size-10 text-signal" />
                 <h3 className="mt-5 font-display text-4xl text-bone">
-                  Pedido recibido
+                  {form.successTitle}
                 </h3>
                 <p className="mt-3 max-w-md text-mist">
-                  Gracias, {form.name.split(" ")[0] || "cliente"}. Ya está en el
-                  panel del taller
+                  Gracias, {values.name.split(" ")[0] || "cliente"}.{" "}
+                  {form.successMessage}
                   {requestId ? (
                     <>
                       {" "}
-                      como{" "}
+                      Código:{" "}
                       <span className="font-medium text-signal">{requestId}</span>
                     </>
                   ) : null}
-                  . Te contactamos para confirmar.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <a
-                    href={workshopContact.whatsappUrl}
+                    href={contact.whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-signal px-5 py-3 text-sm font-semibold text-ink transition hover:bg-signal-dim"
@@ -197,41 +215,44 @@ export function Contact() {
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="p-5 sm:p-6 md:p-9">
-                {/* Progress */}
-                <div className="mb-6 sm:mb-8">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    {stepMeta.map((meta, i) => (
-                      <button
-                        key={meta.label}
-                        type="button"
-                        onClick={() => i < step && setStep(i)}
-                        className={`min-w-0 flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em] transition sm:text-[11px] sm:tracking-[0.16em] ${
-                          i === step
-                            ? "text-signal"
-                            : i < step
-                              ? "text-bone"
-                              : "text-mist/40"
-                        }`}
-                      >
-                        <span className="sm:hidden">0{i + 1}</span>
-                        <span className="hidden sm:inline">
-                          0{i + 1} · {meta.label}
-                        </span>
-                      </button>
-                    ))}
+                {steps.length > 1 ? (
+                  <div className="mb-6 sm:mb-8">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      {steps.map((meta, i) => (
+                        <button
+                          key={meta.id}
+                          type="button"
+                          onClick={() => i < step && setStep(i)}
+                          className={`min-w-0 flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em] transition sm:text-[11px] sm:tracking-[0.16em] ${
+                            i === step
+                              ? "text-signal"
+                              : i < step
+                                ? "text-bone"
+                                : "text-mist/40"
+                          }`}
+                        >
+                          <span className="sm:hidden">0{i + 1}</span>
+                          <span className="hidden sm:inline">
+                            0{i + 1} · {meta.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="h-px w-full bg-white/10">
+                      <motion.div
+                        className="h-px bg-signal"
+                        animate={{
+                          width: `${((step + 1) / steps.length) * 100}%`,
+                        }}
+                        transition={{ duration: 0.35 }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-px w-full bg-white/10">
-                    <motion.div
-                      className="h-px bg-signal"
-                      animate={{ width: `${((step + 1) / 3) * 100}%` }}
-                      transition={{ duration: 0.35 }}
-                    />
-                  </div>
-                </div>
+                ) : null}
 
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={step}
+                    key={current?.id ?? "step"}
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -239,79 +260,85 @@ export function Contact() {
                     className="min-h-[240px] sm:min-h-[260px]"
                   >
                     <h3 className="font-display text-2xl tracking-wide text-bone sm:text-3xl">
-                      {stepMeta[step].title}
+                      {current?.title}
                     </h3>
 
-                    {step === 0 ? (
+                    {current?.id === "contact" ? (
                       <div className="mt-6 space-y-4">
                         <Field
-                          label="Tu nombre"
-                          placeholder="Ej. Ana Pérez"
-                          value={form.name}
+                          label={form.nameLabel}
+                          placeholder={form.namePlaceholder}
+                          value={values.name}
                           onChange={(v) => update("name", v)}
                           required
                         />
                         <Field
-                          label="Teléfono / WhatsApp"
+                          label={form.phoneLabel}
                           type="tel"
-                          placeholder="099 000 000"
-                          value={form.phone}
+                          placeholder={form.phonePlaceholder}
+                          value={values.phone}
                           onChange={(v) => update("phone", v)}
                           required
                         />
                       </div>
                     ) : null}
 
-                    {step === 1 ? (
+                    {current?.id === "vehicle" ? (
                       <div className="mt-6 space-y-5">
-                        <Field
-                          label="Marca, modelo y año"
-                          placeholder="Ej. Toyota Corolla 2019"
-                          value={form.vehicle}
-                          onChange={(v) => update("vehicle", v)}
-                          required
-                        />
-                        <div>
-                          <p className="mb-3 text-sm text-mist">Tipo de trabajo</p>
-                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                            {services.map((s) => {
-                              const selected = form.service === s;
-                              return (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => update("service", s)}
-                                  className={`px-3 py-3 text-left text-sm transition ${
-                                    selected
-                                      ? "bg-signal text-ink"
-                                      : "bg-white/[0.05] text-mist hover:bg-white/[0.08] hover:text-bone"
-                                  }`}
-                                >
-                                  {s}
-                                </button>
-                              );
-                            })}
+                        {form.askVehicle ? (
+                          <Field
+                            label={form.vehicleLabel}
+                            placeholder={form.vehiclePlaceholder}
+                            value={values.vehicle}
+                            onChange={(v) => update("vehicle", v)}
+                            required
+                          />
+                        ) : null}
+                        {form.askService ? (
+                          <div>
+                            <p className="mb-3 text-sm text-mist">
+                              {form.serviceLabel}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                              {form.services.map((s) => {
+                                const selected = values.service === s;
+                                return (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => update("service", s)}
+                                    className={`px-3 py-3 text-left text-sm transition ${
+                                      selected
+                                        ? "bg-signal text-ink"
+                                        : "bg-white/[0.05] text-mist hover:bg-white/[0.08] hover:text-bone"
+                                    }`}
+                                  >
+                                    {s}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
+                        ) : null}
                       </div>
                     ) : null}
 
-                    {step === 2 ? (
+                    {current?.id === "detail" ? (
                       <div className="mt-6 space-y-5">
                         <div>
                           <label
                             htmlFor="notes"
                             className="mb-2 block text-sm text-mist"
                           >
-                            Contanos el problema
+                            {form.notesLabel}
                           </label>
                           <textarea
                             id="notes"
                             rows={4}
-                            value={form.notes}
+                            value={values.notes}
                             onChange={(e) => update("notes", e.target.value)}
                             className="field resize-none"
-                            placeholder="Ruido al frenar, luz en el tablero, kilometraje..."
+                            placeholder={form.notesPlaceholder}
                           />
                         </div>
                         <div className="bg-white/[0.04] p-4 text-sm">
@@ -319,11 +346,15 @@ export function Contact() {
                             Resumen
                           </p>
                           <p className="mt-2 text-bone">
-                            {form.name} · {form.phone}
+                            {values.name} · {values.phone}
                           </p>
-                          <p className="mt-1 text-mist">
-                            {form.vehicle} · {form.service}
-                          </p>
+                          {(values.vehicle || values.service) && (
+                            <p className="mt-1 text-mist">
+                              {[values.vehicle, values.service]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ) : null}
@@ -345,7 +376,7 @@ export function Contact() {
                     disabled={!canNext()}
                     className="inline-flex w-full items-center justify-center gap-2 bg-signal px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-signal-dim disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"
                   >
-                    {step === 2 ? "Enviar pedido" : "Siguiente"}
+                    {step === steps.length - 1 ? form.submitLabel : "Siguiente"}
                     <ArrowUpRight className="size-4" />
                   </button>
                 </div>

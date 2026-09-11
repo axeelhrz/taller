@@ -2,12 +2,14 @@
 
 import { MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export function WhatsAppFloat() {
+  const { contact } = useSiteSettings();
+
   return (
     <motion.a
-      href={workshopContact.whatsappUrl}
+      href={contact.whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escribir por WhatsApp"

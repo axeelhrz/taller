@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Phone, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const links = [
   { href: "#servicios", label: "Servicios" },
@@ -15,6 +15,7 @@ const links = [
 ];
 
 export function PublicNav() {
+  const { contact } = useSiteSettings();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("");
@@ -114,11 +115,11 @@ export function PublicNav() {
         {/* Acciones */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <a
-            href={`tel:${workshopContact.phoneTel}`}
+            href={`tel:${contact.phoneTel}`}
             className="hidden items-center gap-2 bg-white/[0.06] px-3 py-2 text-xs font-medium text-mist transition hover:bg-white/[0.1] hover:text-bone xl:inline-flex"
           >
             <Phone className="size-3.5 text-signal" />
-            {workshopContact.phoneDisplay}
+            {contact.phoneDisplay}
           </a>
           <a
             href="#contacto"
@@ -183,7 +184,7 @@ export function PublicNav() {
             </ul>
             <div className="grid grid-cols-2 gap-2 border-t border-white/5 p-3 sm:grid-cols-3">
               <a
-                href={`tel:${workshopContact.phoneTel}`}
+                href={`tel:${contact.phoneTel}`}
                 className="inline-flex items-center justify-center gap-2 bg-white/[0.06] py-3 text-sm text-bone"
               >
                 <Phone className="size-4 text-signal" />

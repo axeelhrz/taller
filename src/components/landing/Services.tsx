@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 import { Chapter } from "@/components/landing/Chapter";
 import { Reveal } from "@/components/ui/Reveal";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const services = [
   {
@@ -70,6 +70,7 @@ const services = [
 ];
 
 export function Services() {
+  const { contact } = useSiteSettings();
   const [active, setActive] = useState(1);
   const current = services[active];
 
@@ -215,7 +216,7 @@ export function Services() {
                     <ArrowUpRight className="size-4" />
                   </a>
                   <a
-                    href={workshopContact.whatsappUrl}
+                    href={contact.whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-medium text-mist transition hover:text-bone sm:w-auto sm:justify-start"

@@ -64,33 +64,40 @@ export default function ClientesPage() {
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2">
-        {filtered.map((client, i) => (
-          <motion.li
-            key={client.id}
-            layout
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-            className="panel-surface p-5"
-          >
-            <h2 className="font-display text-2xl text-bone">{client.name}</h2>
-            <ul className="mt-4 space-y-2 text-sm text-mist">
-              <li className="flex items-center gap-2">
-                <Phone className="size-3.5 text-signal" />
-                {client.phone}
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="size-3.5 text-signal" />
-                {client.email}
-              </li>
-              <li className="flex items-center gap-2">
-                <Car className="size-3.5 text-signal" />
-                {client.vehicleCount} vehículo
-                {client.vehicleCount === 1 ? "" : "s"}
-              </li>
-            </ul>
-          </motion.li>
-        ))}
+        {filtered.length === 0 ? (
+          <li className="panel-surface col-span-full px-5 py-12 text-center text-sm text-mist">
+            Todavía no hay clientes. Agregá uno o convertí una solicitud del
+            sitio.
+          </li>
+        ) : (
+          filtered.map((client, i) => (
+            <motion.li
+              key={client.id}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              className="panel-surface p-5"
+            >
+              <h2 className="font-display text-2xl text-bone">{client.name}</h2>
+              <ul className="mt-4 space-y-2 text-sm text-mist">
+                <li className="flex items-center gap-2">
+                  <Phone className="size-3.5 text-signal" />
+                  {client.phone}
+                </li>
+                <li className="flex items-center gap-2">
+                  <Mail className="size-3.5 text-signal" />
+                  {client.email}
+                </li>
+                <li className="flex items-center gap-2">
+                  <Car className="size-3.5 text-signal" />
+                  {client.vehicleCount} vehículo
+                  {client.vehicleCount === 1 ? "" : "s"}
+                </li>
+              </ul>
+            </motion.li>
+          ))
+        )}
       </ul>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Nuevo cliente">

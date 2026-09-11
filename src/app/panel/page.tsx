@@ -18,11 +18,12 @@ import { useRequests } from "@/context/RequestsContext";
 import { useWorkshop } from "@/context/WorkshopContext";
 import { formatMoney } from "@/lib/data";
 import { relativeTime } from "@/lib/requests-store";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function PanelDashboardPage() {
   const { orders, appointments, clients } = useWorkshop();
   const { requests, newCount } = useRequests();
+  const { contact } = useSiteSettings();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function PanelDashboardPage() {
               ) : null}
             </Link>
             <a
-              href={workshopContact.whatsappUrl}
+              href={contact.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-steel-mid px-4 py-2.5 text-sm text-bone transition hover:border-signal hover:text-signal"
@@ -283,18 +284,24 @@ export default function PanelDashboardPage() {
               </Link>
             </div>
             <ul className="divide-y divide-steel-mid/80">
-              {activeOrders.slice(0, 4).map((order) => (
-                <li
-                  key={order.id}
-                  className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-bone">{order.id}</p>
-                    <p className="text-xs text-mist">{order.clientName}</p>
-                  </div>
-                  <StatusBadge status={order.status} />
+              {activeOrders.length === 0 ? (
+                <li className="px-5 py-8 text-center text-sm text-mist">
+                  Sin órdenes activas todavía.
                 </li>
-              ))}
+              ) : (
+                activeOrders.slice(0, 4).map((order) => (
+                  <li
+                    key={order.id}
+                    className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-bone">{order.id}</p>
+                      <p className="text-xs text-mist">{order.clientName}</p>
+                    </div>
+                    <StatusBadge status={order.status} />
+                  </li>
+                ))
+              )}
             </ul>
           </section>
         </div>

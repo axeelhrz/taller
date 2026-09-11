@@ -9,9 +9,12 @@ import {
   ClipboardList,
   Inbox,
   LayoutDashboard,
+  LogOut,
+  Settings,
   Users,
   Wrench,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { useRequests } from "@/context/RequestsContext";
 
 const nav = [
@@ -20,11 +23,13 @@ const nav = [
   { href: "/panel/ordenes", label: "Órdenes", icon: ClipboardList },
   { href: "/panel/clientes", label: "Clientes", icon: Users },
   { href: "/panel/citas", label: "Citas", icon: CalendarDays },
+  { href: "/panel/configuracion", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { newCount } = useRequests();
+  const { logout, username } = useAuth();
 
   return (
     <aside className="sticky top-0 z-30 flex w-full flex-col border-b border-steel-mid bg-ink-soft/95 backdrop-blur lg:h-screen lg:w-64 lg:border-b-0 lg:border-r">
@@ -37,7 +42,7 @@ export function Sidebar() {
             <p className="truncate font-display text-base leading-none tracking-wide text-bone sm:text-lg">
               Wilson Larrañaga
             </p>
-            <p className="mt-1 text-xs text-mist">Centro de operaciones</p>
+            <p className="mt-1 truncate text-xs text-mist">@{username}</p>
           </div>
         </div>
         <Link
@@ -82,7 +87,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="hidden border-t border-steel-mid p-4 lg:block">
+      <div className="hidden space-y-3 border-t border-steel-mid p-4 lg:block">
+        <button
+          type="button"
+          onClick={logout}
+          className="flex w-full items-center gap-2 text-sm text-mist transition hover:text-bone"
+        >
+          <LogOut className="size-4" />
+          Cerrar sesión
+        </button>
         <Link
           href="/"
           className="flex items-center gap-2 text-sm text-mist transition hover:text-bone"

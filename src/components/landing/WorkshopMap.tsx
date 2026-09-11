@@ -10,12 +10,6 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { workshopContact } from "@/lib/contact";
-
-const position: [number, number] = [
-  workshopContact.lat,
-  workshopContact.lng,
-];
 
 const markerIcon = L.divIcon({
   className: "wl-marker",
@@ -29,11 +23,10 @@ const markerIcon = L.divIcon({
   iconAnchor: [24, 42],
 });
 
-function MapReady() {
+function MapReady({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
 
   useEffect(() => {
-    // Capa de ambiente oscuro entre tiles y el marcador
     if (!map.getPane("wlVeil")) {
       const pane = map.createPane("wlVeil");
       pane.style.zIndex = "350";
@@ -45,17 +38,27 @@ function MapReady() {
       veil.style.height = "100%";
     }
 
+    map.setView([lat, lng], map.getZoom(), { animate: false });
     const timer = window.setTimeout(() => map.invalidateSize(), 120);
     return () => window.clearTimeout(timer);
-  }, [map]);
+  }, [map, lat, lng]);
 
   return null;
 }
 
-export default function WorkshopMap() {
+export default function WorkshopMap({
+  lat,
+  lng,
+}: {
+  lat: number;
+  lng: number;
+}) {
+  const position: [number, number] = [lat, lng];
+
   return (
     <div className="wl-map h-full w-full">
       <MapContainer
+        key={`${lat}-${lng}`}
         center={position}
         zoom={16}
         scrollWheelZoom={false}
@@ -86,7 +89,7 @@ export default function WorkshopMap() {
           }}
         />
         <Marker position={position} icon={markerIcon} />
-        <MapReady />
+        <MapReady lat={lat} lng={lng} />
       </MapContainer>
     </div>
   );

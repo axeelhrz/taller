@@ -1,6 +1,8 @@
 "use client";
 
+import { PanelLogin } from "@/components/panel/PanelLogin";
 import { Sidebar } from "@/components/panel/Sidebar";
+import { useAuth } from "@/context/AuthContext";
 import { WorkshopProvider } from "@/context/WorkshopContext";
 
 export default function PanelLayout({
@@ -8,6 +10,20 @@ export default function PanelLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { ready, authenticated } = useAuth();
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-ink text-sm text-mist">
+        Cargando…
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return <PanelLogin />;
+  }
+
   return (
     <WorkshopProvider>
       <div className="flex min-h-svh flex-col bg-ink lg:flex-row">

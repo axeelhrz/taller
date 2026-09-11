@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export function Footer() {
+  const { contact } = useSiteSettings();
+
   return (
     <footer className="relative z-10 border-t border-white/5 py-12 sm:py-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:px-6 sm:flex-row sm:items-end sm:justify-between">
@@ -14,19 +18,19 @@ export function Footer() {
           </p>
           <p className="mt-3 flex flex-col gap-1 text-sm text-mist sm:block">
             <a
-              href={`tel:${workshopContact.phoneTel}`}
+              href={`tel:${contact.phoneTel}`}
               className="transition hover:text-signal"
             >
-              {workshopContact.phoneDisplay}
+              {contact.phoneDisplay}
             </a>
             <span className="hidden sm:inline"> · </span>
             <a
-              href={workshopContact.mapsUrl}
+              href={contact.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="transition hover:text-signal"
             >
-              {workshopContact.addressLine}
+              {contact.addressLine}
             </a>
           </p>
         </div>

@@ -5,6 +5,7 @@ import {
   Clock3,
   Copy,
   ExternalLink,
+  MapPin,
   Navigation,
   Phone,
   Check,
@@ -12,7 +13,7 @@ import {
 import { useState } from "react";
 import { Chapter } from "@/components/landing/Chapter";
 import { Reveal } from "@/components/ui/Reveal";
-import { workshopContact } from "@/lib/contact";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const WorkshopMap = dynamic(() => import("./WorkshopMap"), {
   ssr: false,
@@ -23,18 +24,15 @@ const WorkshopMap = dynamic(() => import("./WorkshopMap"), {
   ),
 });
 
-const hours = [
-  { day: "Lunes a viernes", time: "8:00 – 18:00" },
-  { day: "Sábados", time: "8:00 – 13:00" },
-  { day: "Domingos", time: "Cerrado" },
-];
-
 export function Location() {
+  const { contact } = useSiteSettings();
   const [copied, setCopied] = useState(false);
 
-  async function copyPlusCode() {
+  async function copyAddress() {
     try {
-      await navigator.clipboard.writeText(workshopContact.plusCode);
+      await navigator.clipboard.writeText(
+        `${contact.addressLine}, ${contact.addressRegion}`,
+      );
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -55,7 +53,7 @@ export function Location() {
             <span className="text-signal">el taller</span>
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-mist md:text-lg">
-            Estamos en Montevideo. Pedí indicaciones, copiá el Plus Code o
+            Estamos en Montevideo. Pedí indicaciones, copiá la dirección o
             escribinos antes de venir — te orientamos sin vueltas.
           </p>
         </Reveal>
@@ -63,7 +61,7 @@ export function Location() {
         <Reveal delay={0.08} className="lg:justify-self-end">
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <a
-              href={workshopContact.directionsUrl}
+              href={contact.directionsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex w-full items-center justify-center gap-2 bg-signal px-5 py-3 text-sm font-semibold text-ink transition hover:bg-signal-dim sm:w-auto"
@@ -72,7 +70,7 @@ export function Location() {
               Indicaciones
             </a>
             <a
-              href={workshopContact.whatsappUrl}
+              href={contact.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex w-full items-center justify-center gap-2 bg-white/[0.06] px-5 py-3 text-sm font-medium text-bone transition hover:bg-white/[0.1] sm:w-auto"
@@ -91,15 +89,15 @@ export function Location() {
             <div className="relative z-30 flex flex-col justify-between gap-8 border-b border-white/5 p-6 md:p-9 lg:border-b-0 lg:border-r lg:border-white/5">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-signal">
-                  Plus Code
+                  Dirección
                 </p>
                 <div className="mt-3 flex flex-wrap items-end gap-3">
-                  <p className="font-display text-4xl tracking-wide text-bone sm:text-5xl md:text-6xl">
-                    {workshopContact.plusCode}
+                  <p className="font-display text-3xl tracking-wide text-bone sm:text-4xl md:text-5xl">
+                    {contact.addressLine}
                   </p>
                   <button
                     type="button"
-                    onClick={copyPlusCode}
+                    onClick={copyAddress}
                     className="mb-1.5 inline-flex items-center gap-1.5 bg-white/[0.06] px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-mist transition hover:bg-white/[0.1] hover:text-bone"
                   >
                     {copied ? (
@@ -109,18 +107,13 @@ export function Location() {
                       </>
                     ) : (
                       <>
-                        <Copy className="size-3.5" />
+                        <MapPin className="size-3.5" />
                         Copiar
                       </>
                     )}
                   </button>
                 </div>
-                <p className="mt-3 text-mist">
-                  {workshopContact.addressLine}
-                </p>
-                <p className="text-sm text-mist/70">
-                  {workshopContact.addressRegion}
-                </p>
+                <p className="mt-3 text-mist">{contact.addressRegion}</p>
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
@@ -130,13 +123,13 @@ export function Location() {
                     Contacto
                   </p>
                   <a
-                    href={`tel:${workshopContact.phoneTel}`}
+                    href={`tel:${contact.phoneTel}`}
                     className="mt-3 block font-display text-2xl text-bone transition hover:text-signal"
                   >
-                    {workshopContact.phoneDisplay}
+                    {contact.phoneDisplay}
                   </a>
                   <a
-                    href={workshopContact.whatsappUrl}
+                    href={contact.whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 inline-block text-sm text-mist underline-offset-4 transition hover:text-signal hover:underline"
@@ -151,7 +144,7 @@ export function Location() {
                     Horario
                   </p>
                   <ul className="mt-3 space-y-2">
-                    {hours.map((row) => (
+                    {contact.schedule.map((row) => (
                       <li
                         key={row.day}
                         className="flex items-baseline justify-between gap-3 text-sm"
@@ -159,12 +152,12 @@ export function Location() {
                         <span className="text-mist">{row.day}</span>
                         <span
                           className={
-                            row.time === "Cerrado"
+                            row.hours.toLowerCase() === "cerrado"
                               ? "text-mist/50"
-                              : "font-medium text-bone"
+                              : "text-right font-medium text-bone"
                           }
                         >
-                          {row.time}
+                          {row.hours}
                         </span>
                       </li>
                     ))}
@@ -173,7 +166,7 @@ export function Location() {
               </div>
 
               <a
-                href={workshopContact.mapsUrl}
+                href={contact.mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex w-fit items-center gap-2 text-sm font-medium text-mist transition hover:text-signal"
@@ -184,7 +177,7 @@ export function Location() {
             </div>
 
             <div className="relative h-[300px] sm:h-[400px] lg:h-full lg:min-h-[520px]">
-              <WorkshopMap />
+              <WorkshopMap lat={contact.lat} lng={contact.lng} />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-[450] h-16 bg-gradient-to-b from-[#10131a]/80 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[450] h-16 bg-gradient-to-t from-[#10131a]/70 to-transparent" />
             </div>
