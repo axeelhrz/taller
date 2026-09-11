@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   ChevronLeft,
+  Loader2,
   MessageCircle,
   Phone,
 } from "lucide-react";
@@ -23,6 +24,7 @@ export function Contact() {
   const { push } = useToast();
   const [step, setStep] = useState(0);
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [values, setValues] = useState({
     name: "",
@@ -87,23 +89,30 @@ export function Contact() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!canNext()) return;
+    if (!canNext() || sending) return;
 
     if (step < steps.length - 1) {
       setStep((s) => s + 1);
       return;
     }
 
-    const created = await submitRequest({
-      name: values.name.trim(),
-      phone: values.phone.trim(),
-      vehicle: form.askVehicle ? values.vehicle.trim() : "",
-      service: form.askService ? values.service : "Consulta",
-      notes: form.askNotes ? values.notes.trim() : "",
-    });
-    setRequestId(created.id);
-    setSent(true);
-    push("Solicitud enviada al panel del taller");
+    setSending(true);
+    try {
+      const created = await submitRequest({
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        vehicle: form.askVehicle ? values.vehicle.trim() : "",
+        service: form.askService ? values.service : "Consulta",
+        notes: form.askNotes ? values.notes.trim() : "",
+      });
+      setRequestId(created.id);
+      setSent(true);
+      push("Solicitud enviada al panel del taller");
+    } catch {
+      push("No se pudo enviar. Probá de nuevo.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -373,11 +382,22 @@ export function Contact() {
                   </button>
                   <button
                     type="submit"
-                    disabled={!canNext()}
+                    disabled={!canNext() || sending}
                     className="inline-flex w-full items-center justify-center gap-2 bg-signal px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-signal-dim disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"
                   >
-                    {step === steps.length - 1 ? form.submitLabel : "Siguiente"}
-                    <ArrowUpRight className="size-4" />
+                    {sending ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        {step === steps.length - 1
+                          ? form.submitLabel
+                          : "Siguiente"}
+                        <ArrowUpRight className="size-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

@@ -39,11 +39,12 @@ const statusStyles: Record<RequestStatus, string> = {
 
 export default function SolicitudesPage() {
   const { requests, setRequestStatus, newCount } = useRequests();
-  const { addAppointment, addClient } = useWorkshop();
+  const { scheduleRequest } = useWorkshop();
   const { push } = useToast();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,27 +71,23 @@ export default function SolicitudesPage() {
   }
 
   async function scheduleFromRequest() {
-    if (!selected) return;
-    const today = new Date();
-    const date = today.toISOString().slice(0, 10);
-    await addAppointment({
-      clientName: selected.name,
-      phone: selected.phone,
-      vehicle: selected.vehicle,
-      service: selected.service,
-      date,
-      time: "10:00",
-      notes: selected.notes || `Desde ${selected.id}`,
-      status: "pendiente",
-    });
-    await addClient({
-      name: selected.name,
-      phone: selected.phone,
-      email: "",
-      vehicleCount: 1,
-    });
-    await setRequestStatus(selected.id, "agendada");
-    push("Cita creada desde la solicitud");
+    if (!selected || scheduling) return;
+    setScheduling(true);
+    try {
+      await scheduleRequest({
+        clientName: selected.name,
+        phone: selected.phone,
+        vehicle: selected.vehicle,
+        service: selected.service,
+        notes: selected.notes || `Desde ${selected.id}`,
+      });
+      await setRequestStatus(selected.id, "agendada");
+      push("Cita creada desde la solicitud");
+    } catch {
+      push("No se pudo crear la cita. Probá de nuevo.");
+    } finally {
+      setScheduling(false);
+    }
   }
 
   return (
@@ -281,10 +278,11 @@ export default function SolicitudesPage() {
                 <button
                   type="button"
                   onClick={scheduleFromRequest}
-                  className="btn-primary inline-flex items-center gap-2 px-3 py-2 text-sm"
+                  disabled={scheduling}
+                  className="btn-primary inline-flex items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
                 >
                   <CalendarPlus className="size-4" />
-                  Crear cita
+                  {scheduling ? "Creando…" : "Crear cita"}
                 </button>
                 <button
                   type="button"

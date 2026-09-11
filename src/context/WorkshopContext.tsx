@@ -13,6 +13,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -42,21 +43,33 @@ type WorkshopContextValue = {
     id: string,
     status: AppointmentStatus,
   ) => Promise<void>;
+  /** Guarda cita + cliente en una sola escritura (evita pisar datos). */
+  scheduleRequest: (input: {
+    clientName: string;
+    phone: string;
+    vehicle: string;
+    service: string;
+    notes?: string;
+  }) => Promise<void>;
 };
 
 const WorkshopContext = createContext<WorkshopContextValue | null>(null);
 
+const empty: WorkshopData = {
+  clients: [],
+  orders: [],
+  appointments: [],
+};
+
 export function WorkshopProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<WorkshopData>({
-    clients: [],
-    orders: [],
-    appointments: [],
-  });
+  const [data, setData] = useState<WorkshopData>(empty);
   const [ready, setReady] = useState(false);
+  const dataRef = useRef<WorkshopData>(empty);
 
   useEffect(() => {
     const unsub = listenWorkshop(
       (next) => {
+        dataRef.current = next;
         setData(next);
         setReady(true);
       },
@@ -65,28 +78,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  const persist = useCallback(async (next: WorkshopData) => {
-    await saveWorkshopToFirestore(next);
-    setData(next);
-  }, []);
+  const persist = useCallback(
+    async (updater: (prev: WorkshopData) => WorkshopData) => {
+      const next = updater(dataRef.current);
+      dataRef.current = next;
+      setData(next);
+      await saveWorkshopToFirestore(next);
+    },
+    [],
+  );
 
   const addClient = useCallback(
     async (
       input: Omit<Client, "id" | "vehicleCount"> & { vehicleCount?: number },
     ) => {
-      await persist({
-        ...data,
+      await persist((prev) => ({
+        ...prev,
         clients: [
           {
             id: `c${Date.now()}`,
             vehicleCount: input.vehicleCount ?? 1,
             ...input,
           },
-          ...data.clients,
+          ...prev.clients,
         ],
-      });
+      }));
     },
-    [data, persist],
+    [persist],
   );
 
   const addOrder = useCallback(
@@ -95,8 +113,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         status?: OrderStatus;
       },
     ) => {
-      await persist({
-        ...data,
+      await persist((prev) => ({
+        ...prev,
         orders: [
           {
             id: `OT-${Date.now().toString().slice(-4)}`,
@@ -104,23 +122,23 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             status: input.status ?? "recibido",
             ...input,
           },
-          ...data.orders,
+          ...prev.orders,
         ],
-      });
+      }));
     },
-    [data, persist],
+    [persist],
   );
 
   const updateOrderStatus = useCallback(
     async (id: string, status: OrderStatus) => {
-      await persist({
-        ...data,
-        orders: data.orders.map((order) =>
+      await persist((prev) => ({
+        ...prev,
+        orders: prev.orders.map((order) =>
           order.id === id ? { ...order, status } : order,
         ),
-      });
+      }));
     },
-    [data, persist],
+    [persist],
   );
 
   const addAppointment = useCallback(
@@ -129,31 +147,71 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         status?: AppointmentStatus;
       },
     ) => {
-      await persist({
-        ...data,
+      await persist((prev) => ({
+        ...prev,
         appointments: [
           {
             id: `a${Date.now()}`,
             status: input.status ?? "pendiente",
             ...input,
           },
-          ...data.appointments,
+          ...prev.appointments,
         ],
-      });
+      }));
     },
-    [data, persist],
+    [persist],
   );
 
   const updateAppointmentStatus = useCallback(
     async (id: string, status: AppointmentStatus) => {
-      await persist({
-        ...data,
-        appointments: data.appointments.map((apt) =>
+      await persist((prev) => ({
+        ...prev,
+        appointments: prev.appointments.map((apt) =>
           apt.id === id ? { ...apt, status } : apt,
         ),
-      });
+      }));
     },
-    [data, persist],
+    [persist],
+  );
+
+  const scheduleRequest = useCallback(
+    async (input: {
+      clientName: string;
+      phone: string;
+      vehicle: string;
+      service: string;
+      notes?: string;
+    }) => {
+      const today = new Date().toISOString().slice(0, 10);
+      await persist((prev) => ({
+        ...prev,
+        appointments: [
+          {
+            id: `a${Date.now()}`,
+            clientName: input.clientName,
+            phone: input.phone,
+            vehicle: input.vehicle,
+            service: input.service,
+            date: today,
+            time: "10:00",
+            notes: input.notes,
+            status: "pendiente",
+          },
+          ...prev.appointments,
+        ],
+        clients: [
+          {
+            id: `c${Date.now()}`,
+            name: input.clientName,
+            phone: input.phone,
+            email: "",
+            vehicleCount: 1,
+          },
+          ...prev.clients,
+        ],
+      }));
+    },
+    [persist],
   );
 
   const value = useMemo(
@@ -167,6 +225,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       addAppointment,
       updateAppointmentStatus,
+      scheduleRequest,
     }),
     [
       data,
@@ -176,6 +235,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       addAppointment,
       updateAppointmentStatus,
+      scheduleRequest,
     ],
   );
 
