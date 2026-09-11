@@ -43,6 +43,11 @@ type WorkshopContextValue = {
     id: string,
     status: AppointmentStatus,
   ) => Promise<void>;
+  updateAppointment: (
+    id: string,
+    patch: Partial<Pick<Appointment, "date" | "time" | "status" | "notes">>,
+  ) => Promise<void>;
+  removeAppointment: (id: string) => Promise<void>;
   /** Guarda cita + cliente en una sola escritura (evita pisar datos). */
   scheduleRequest: (input: {
     clientName: string;
@@ -50,6 +55,8 @@ type WorkshopContextValue = {
     vehicle: string;
     service: string;
     notes?: string;
+    date?: string;
+    time?: string;
   }) => Promise<void>;
 };
 
@@ -174,6 +181,31 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     [persist],
   );
 
+  const updateAppointment = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<Appointment, "date" | "time" | "status" | "notes">>,
+    ) => {
+      await persist((prev) => ({
+        ...prev,
+        appointments: prev.appointments.map((apt) =>
+          apt.id === id ? { ...apt, ...patch } : apt,
+        ),
+      }));
+    },
+    [persist],
+  );
+
+  const removeAppointment = useCallback(
+    async (id: string) => {
+      await persist((prev) => ({
+        ...prev,
+        appointments: prev.appointments.filter((apt) => apt.id !== id),
+      }));
+    },
+    [persist],
+  );
+
   const scheduleRequest = useCallback(
     async (input: {
       clientName: string;
@@ -181,6 +213,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       vehicle: string;
       service: string;
       notes?: string;
+      date?: string;
+      time?: string;
     }) => {
       const today = new Date().toISOString().slice(0, 10);
       await persist((prev) => ({
@@ -192,8 +226,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             phone: input.phone,
             vehicle: input.vehicle,
             service: input.service,
-            date: today,
-            time: "10:00",
+            date: input.date || today,
+            time: input.time || "10:00",
             notes: input.notes,
             status: "pendiente",
           },
@@ -225,6 +259,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       addAppointment,
       updateAppointmentStatus,
+      updateAppointment,
+      removeAppointment,
       scheduleRequest,
     }),
     [
@@ -235,6 +271,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       addAppointment,
       updateAppointmentStatus,
+      updateAppointment,
+      removeAppointment,
       scheduleRequest,
     ],
   );

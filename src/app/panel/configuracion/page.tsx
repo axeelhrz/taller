@@ -222,7 +222,7 @@ export default function ConfiguracionPage() {
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Toggle
               label="Pedir vehículo"
               checked={formDraft.askVehicle}
@@ -237,6 +237,11 @@ export default function ConfiguracionPage() {
               label="Pedir detalle / problema"
               checked={formDraft.askNotes}
               onChange={(v) => patchForm("askNotes", v)}
+            />
+            <Toggle
+              label="Pedir fecha / hora"
+              checked={formDraft.askDate}
+              onChange={(v) => patchForm("askDate", v)}
             />
           </div>
 
@@ -305,7 +310,16 @@ export default function ConfiguracionPage() {
               label="Placeholder detalle"
               value={formDraft.notesPlaceholder}
               onChange={(v) => patchForm("notesPlaceholder", v)}
-              className="sm:col-span-2"
+            />
+            <Field
+              label="Label fecha"
+              value={formDraft.dateLabel}
+              onChange={(v) => patchForm("dateLabel", v)}
+            />
+            <Field
+              label="Label hora"
+              value={formDraft.timeLabel}
+              onChange={(v) => patchForm("timeLabel", v)}
             />
             <Field
               label="Título éxito"

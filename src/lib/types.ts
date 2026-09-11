@@ -57,6 +57,8 @@ export interface ServiceRequest {
   vehicle: string;
   service: string;
   notes: string;
+  preferredDate?: string;
+  preferredTime?: string;
   createdAt: string;
   status: RequestStatus;
   source: "web";

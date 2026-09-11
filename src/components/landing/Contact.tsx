@@ -32,6 +32,8 @@ export function Contact() {
     vehicle: "",
     service: "",
     notes: "",
+    preferredDate: "",
+    preferredTime: "",
   });
 
   const steps = useMemo(() => {
@@ -45,11 +47,11 @@ export function Contact() {
         title: form.stepVehicleTitle,
       });
     }
-    if (form.askNotes) {
+    if (form.askNotes || form.askDate) {
       list.push({
         id: "detail",
-        label: "Detalle",
-        title: form.stepDetailTitle,
+        label: form.askDate ? "Agenda" : "Detalle",
+        title: form.askDate ? "¿Cuándo te viene bien?" : form.stepDetailTitle,
       });
     }
     return list;
@@ -71,6 +73,10 @@ export function Contact() {
       if (form.askService && !values.service) return false;
       return true;
     }
+    if (current.id === "detail") {
+      if (form.askDate && !values.preferredDate) return false;
+      return true;
+    }
     return true;
   }
 
@@ -84,6 +90,8 @@ export function Contact() {
       vehicle: "",
       service: "",
       notes: "",
+      preferredDate: "",
+      preferredTime: "",
     });
   }
 
@@ -104,6 +112,8 @@ export function Contact() {
         vehicle: form.askVehicle ? values.vehicle.trim() : "",
         service: form.askService ? values.service : "Consulta",
         notes: form.askNotes ? values.notes.trim() : "",
+        preferredDate: form.askDate ? values.preferredDate : undefined,
+        preferredTime: form.askDate ? values.preferredTime || undefined : undefined,
       });
       setRequestId(created.id);
       setSent(true);
@@ -334,22 +344,42 @@ export function Contact() {
 
                     {current?.id === "detail" ? (
                       <div className="mt-6 space-y-5">
-                        <div>
-                          <label
-                            htmlFor="notes"
-                            className="mb-2 block text-sm text-mist"
-                          >
-                            {form.notesLabel}
-                          </label>
-                          <textarea
-                            id="notes"
-                            rows={4}
-                            value={values.notes}
-                            onChange={(e) => update("notes", e.target.value)}
-                            className="field resize-none"
-                            placeholder={form.notesPlaceholder}
-                          />
-                        </div>
+                        {form.askDate ? (
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <Field
+                              label={form.dateLabel}
+                              type="date"
+                              value={values.preferredDate}
+                              onChange={(v) => update("preferredDate", v)}
+                              required
+                              min={new Date().toISOString().slice(0, 10)}
+                            />
+                            <Field
+                              label={form.timeLabel}
+                              type="time"
+                              value={values.preferredTime}
+                              onChange={(v) => update("preferredTime", v)}
+                            />
+                          </div>
+                        ) : null}
+                        {form.askNotes ? (
+                          <div>
+                            <label
+                              htmlFor="notes"
+                              className="mb-2 block text-sm text-mist"
+                            >
+                              {form.notesLabel}
+                            </label>
+                            <textarea
+                              id="notes"
+                              rows={4}
+                              value={values.notes}
+                              onChange={(e) => update("notes", e.target.value)}
+                              className="field resize-none"
+                              placeholder={form.notesPlaceholder}
+                            />
+                          </div>
+                        ) : null}
                         <div className="bg-white/[0.04] p-4 text-sm">
                           <p className="text-[10px] uppercase tracking-[0.16em] text-signal">
                             Resumen
@@ -364,6 +394,14 @@ export function Contact() {
                                 .join(" · ")}
                             </p>
                           )}
+                          {values.preferredDate ? (
+                            <p className="mt-1 text-mist">
+                              {values.preferredDate}
+                              {values.preferredTime
+                                ? ` · ${values.preferredTime}`
+                                : ""}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -416,6 +454,7 @@ function Field({
   type = "text",
   required,
   placeholder,
+  min,
 }: {
   label: string;
   value: string;
@@ -423,6 +462,7 @@ function Field({
   type?: string;
   required?: boolean;
   placeholder?: string;
+  min?: string;
 }) {
   return (
     <div>
@@ -432,6 +472,7 @@ function Field({
         value={value}
         required={required}
         placeholder={placeholder}
+        min={min}
         onChange={(e) => onChange(e.target.value)}
         className="field"
       />

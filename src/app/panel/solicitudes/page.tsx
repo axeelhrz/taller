@@ -38,13 +38,14 @@ const statusStyles: Record<RequestStatus, string> = {
 };
 
 export default function SolicitudesPage() {
-  const { requests, setRequestStatus, newCount } = useRequests();
+  const { requests, setRequestStatus, deleteRequest, newCount } = useRequests();
   const { scheduleRequest } = useWorkshop();
   const { push } = useToast();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,6 +81,8 @@ export default function SolicitudesPage() {
         vehicle: selected.vehicle,
         service: selected.service,
         notes: selected.notes || `Desde ${selected.id}`,
+        date: selected.preferredDate,
+        time: selected.preferredTime,
       });
       await setRequestStatus(selected.id, "agendada");
       push("Cita creada desde la solicitud");
@@ -87,6 +90,24 @@ export default function SolicitudesPage() {
       push("No se pudo crear la cita. Probá de nuevo.");
     } finally {
       setScheduling(false);
+    }
+  }
+
+  async function removeRequest() {
+    if (!selected || deleting) return;
+    const ok = window.confirm(
+      `¿Eliminar por completo la solicitud de ${selected.name}?`,
+    );
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      await deleteRequest(selected.id);
+      setSelectedId(null);
+      push("Solicitud eliminada");
+    } catch {
+      push("No se pudo eliminar");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -243,6 +264,16 @@ export default function SolicitudesPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-xs uppercase tracking-wide text-mist">
+                    Fecha preferida
+                  </dt>
+                  <dd className="mt-1 text-bone">
+                    {selected.preferredDate
+                      ? `${selected.preferredDate}${selected.preferredTime ? ` · ${selected.preferredTime}` : ""}`
+                      : "Sin fecha indicada"}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs uppercase tracking-wide text-mist">
                     Detalle
                   </dt>
                   <dd className="mt-1 text-mist">
@@ -289,8 +320,16 @@ export default function SolicitudesPage() {
                   onClick={() => mark("descartada")}
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm text-mist transition hover:text-danger"
                 >
-                  <Trash2 className="size-4" />
                   Descartar
+                </button>
+                <button
+                  type="button"
+                  onClick={removeRequest}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm text-danger transition hover:bg-danger/10 disabled:opacity-50"
+                >
+                  <Trash2 className="size-4" />
+                  {deleting ? "Eliminando…" : "Eliminar"}
                 </button>
               </div>
             </motion.article>

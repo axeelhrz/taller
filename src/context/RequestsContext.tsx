@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   createRequestInFirestore,
+  deleteRequestInFirestore,
   listenRequests,
   updateRequestStatusInFirestore,
 } from "@/lib/firebase/data";
@@ -18,10 +19,12 @@ import type { RequestStatus, ServiceRequest } from "@/lib/types";
 type RequestsContextValue = {
   requests: ServiceRequest[];
   newCount: number;
+  ready: boolean;
   submitRequest: (
     input: Omit<ServiceRequest, "id" | "createdAt" | "status" | "source">,
   ) => Promise<ServiceRequest>;
   setRequestStatus: (id: string, status: RequestStatus) => Promise<void>;
+  deleteRequest: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -61,6 +64,10 @@ export function RequestsProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const deleteRequest = useCallback(async (id: string) => {
+    await deleteRequestInFirestore(id);
+  }, []);
+
   const refresh = useCallback(async () => undefined, []);
 
   const newCount = useMemo(
@@ -72,11 +79,21 @@ export function RequestsProvider({ children }: { children: React.ReactNode }) {
     () => ({
       requests: ready ? requests : [],
       newCount: ready ? newCount : 0,
+      ready,
       submitRequest,
       setRequestStatus,
+      deleteRequest,
       refresh,
     }),
-    [ready, requests, newCount, submitRequest, setRequestStatus, refresh],
+    [
+      ready,
+      requests,
+      newCount,
+      submitRequest,
+      setRequestStatus,
+      deleteRequest,
+      refresh,
+    ],
   );
 
   return (

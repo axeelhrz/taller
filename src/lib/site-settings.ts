@@ -25,9 +25,12 @@ export type FormSettings = {
   services: string[];
   notesLabel: string;
   notesPlaceholder: string;
+  dateLabel: string;
+  timeLabel: string;
   askVehicle: boolean;
   askService: boolean;
   askNotes: boolean;
+  askDate: boolean;
   submitLabel: string;
   successTitle: string;
   successMessage: string;
@@ -65,9 +68,12 @@ export const defaultFormSettings: FormSettings = {
   services: ["Diagnóstico", "Service", "Frenos", "Motor", "Aire", "Otro"],
   notesLabel: "Contanos el problema",
   notesPlaceholder: "Ruido al frenar, luz en el tablero, kilometraje...",
+  dateLabel: "Fecha preferida",
+  timeLabel: "Horario preferido",
   askVehicle: true,
   askService: true,
   askNotes: true,
+  askDate: true,
   submitLabel: "Enviar pedido",
   successTitle: "Pedido recibido",
   successMessage:
@@ -87,6 +93,7 @@ function hydrateForm(partial?: Partial<FormSettings>): FormSettings {
     askVehicle: partial?.askVehicle ?? defaultFormSettings.askVehicle,
     askService: partial?.askService ?? defaultFormSettings.askService,
     askNotes: partial?.askNotes ?? defaultFormSettings.askNotes,
+    askDate: partial?.askDate ?? defaultFormSettings.askDate,
   };
 }
 
